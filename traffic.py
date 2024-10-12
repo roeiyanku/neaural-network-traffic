@@ -14,13 +14,15 @@ TEST_SIZE = 0.4
 
 
 def main():
-
     # Check command-line arguments
     if len(sys.argv) not in [2, 3]:
         sys.exit("Usage: python traffic.py data_directory [model.h5]")
 
+    print("Loading data...")
+
     # Get image arrays and labels for all image files
     images, labels = load_data(sys.argv[1])
+    print(f"Loaded {len(images)} images")
 
     # Split data into training and testing sets
     labels = tf.keras.utils.to_categorical(labels)
@@ -35,7 +37,7 @@ def main():
     model.fit(x_train, y_train, epochs=EPOCHS)
 
     # Evaluate neural network performance
-    model.evaluate(x_test,  y_test, verbose=2)
+    model.evaluate(x_test, y_test, verbose=2)
 
     # Save model to file
     if len(sys.argv) == 3:
@@ -58,7 +60,28 @@ def load_data(data_dir):
     be a list of integer labels, representing the categories for each of the
     corresponding `images`.
     """
-    raise NotImplementedError
+    data_dir = r"C:\Users\famen\Desktop\Roei\Coding Projects\traffic\gtsrb"
+
+    data = []
+    labels = []
+
+    for category in range(NUM_CATEGORIES):
+        category_dir = os.path.join(data_dir, str(category))
+
+        for image_file in os.listdir(category_dir):
+            image_path = os.path.join(category_dir, image_file)
+
+            image = cv2.imread(image_path)
+
+            if image is not None:
+                image = cv2.resize(image, (IMG_WIDTH, IMG_HEIGHT))  # Resize example
+                image = image.astype('float32') / 255.0
+                data.append(image)  # Store the image data
+                labels.append(category)  # Store the corresponding category (label)
+
+    data = np.array(data)
+    labels = np.array(labels)
+    return data, labels
 
 
 def get_model():
@@ -67,7 +90,26 @@ def get_model():
     `input_shape` of the first layer is `(IMG_WIDTH, IMG_HEIGHT, 3)`.
     The output layer should have `NUM_CATEGORIES` units, one for each category.
     """
-    raise NotImplementedError
+    model = tf.keras.models.Sequential([
+        # First layer, 32 filters 3 by 3 kernel
+        tf.keras.layers.Conv2D(32,(3, 3) , activation="relu", input_shape=(IMG_WIDTH, IMG_HEIGHT, 3)
+                               ),
+        tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),  # Add pooling layer
+        tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+        tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),  # Add another pooling layer
+        tf.keras.layers.Flatten(),  # Flatten the output for Dense layers
+        tf.keras.layers.Dense(128, activation="relu"),
+
+        tf.keras.layers.Dense(NUM_CATEGORIES, activation="softmax")
+    ])
+
+    model.compile(
+        optimizer="adam",
+        loss="categorical_crossentropy",
+        metrics=["accuracy"]
+
+    )
+    return model
 
 
 if __name__ == "__main__":
